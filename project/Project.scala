@@ -44,7 +44,12 @@ object Zipkin extends Build {
   val hbaseVersion = "0.98.3-hadoop2"
   val hadoopVersion = "2.4.0"
 
-  def finagle(name: String) = "com.twitter" %% ("finagle-" + name) % finagleVersion
+  val parentExclusions = Seq(
+    ExclusionRule(organization = "com.fasterxml.jackson", artifact = "jackson-parent"),
+    ExclusionRule(organization = "com.fasterxml", artifact = "oss-parent")
+  )
+
+  def finagle(name: String) = "com.twitter" %% ("finagle-" + name) % finagleVersion excludeAll(parentExclusions:_*)
   def util(name: String) = "com.twitter" %% ("util-" + name) % utilVersion
   def scroogeDep(name: String) = "com.twitter" %% ("scrooge-" + name) % scroogeVersion
   def algebird(name: String) = "com.twitter" %% ("algebird-" + name) % algebirdVersion
@@ -152,7 +157,7 @@ object Zipkin extends Build {
         finagle("ostrich4"),
         finagle("thrift"),
         finagle("zipkin"),
-        finagle("exception"),
+//        finagle("exception"),
         util("core"),
         zk("client"),
         algebird("core"),

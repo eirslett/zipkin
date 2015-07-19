@@ -62,3 +62,21 @@ trait Storage {
   def getDataTimeToLive: Int
 
 }
+
+// For Java-friendliness
+abstract class AbstractStorage extends Storage {
+  import java.{util => ju}
+  import scala.collection.JavaConverters._
+
+  // Java implementations can implement these methods, that use Java types, instead of the Scala types
+  def tracesExist(traceIds: ju.List[Long]) : Future[ju.Set[Long]]
+  def getSpansByTraceIds(straceIds: ju.List[Long]) : Future[ju.List[ju.List[Span]]]
+  def java_getSpansByTraceId(traceId: Long) : Future[ju.List[Span]]
+
+  final override def tracesExist(traceIds: Seq[Long]): Future[Set[Long]] = tracesExist(traceIds.asJava).map(_.asScala.toSet)
+  final override def getSpansByTraceIds(traceIds: Seq[Long]): Future[Seq[Seq[Span]]] =
+    getSpansByTraceIds(traceIds.asJava).map { traces =>
+      traces.asScala.map(_.asScala)
+  }
+  final override def getSpansByTraceId(traceId: Long) : Future[Seq[Span]] = java_getSpansByTraceId(traceId).map(_.asScala)
+}
