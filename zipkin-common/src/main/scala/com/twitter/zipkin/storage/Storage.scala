@@ -67,15 +67,17 @@ trait Storage {
 abstract class AbstractStorage extends Storage {
   import java.{util => ju}
   import scala.collection.JavaConverters._
+  import com.twitter.zipkin.interop.Helpers._
 
   // Java implementations can implement these methods, that use Java types, instead of the Scala types
-  def tracesExist(traceIds: ju.List[Long]) : Future[ju.Set[Long]]
-  def getSpansByTraceIds(straceIds: ju.List[Long]) : Future[ju.List[ju.List[Span]]]
+  def java_tracesExist(traceIds: ju.List[java.lang.Long]) : Future[ju.Set[java.lang.Long]]
+  def getSpansByTraceIds(traceIds: ju.List[java.lang.Long]) : Future[ju.List[ju.List[Span]]]
   def java_getSpansByTraceId(traceId: Long) : Future[ju.List[Span]]
 
-  final override def tracesExist(traceIds: Seq[Long]): Future[Set[Long]] = tracesExist(traceIds.asJava).map(_.asScala.toSet)
+  // Here, we delegate calls to the Java implementation, after having converted types to/from Java
+  final override def tracesExist(traceIds: Seq[Long]): Future[Set[Long]] = java_tracesExist(traceIds.map(Long.box).asJava).map(result => result.asScala.toSet.map(Long.unbox))
   final override def getSpansByTraceIds(traceIds: Seq[Long]): Future[Seq[Seq[Span]]] =
-    getSpansByTraceIds(traceIds.asJava).map { traces =>
+    getSpansByTraceIds(traceIds.map(Long.box).asJava).map { traces =>
       traces.asScala.map(_.asScala)
   }
   final override def getSpansByTraceId(traceId: Long) : Future[Seq[Span]] = java_getSpansByTraceId(traceId).map(_.asScala)
