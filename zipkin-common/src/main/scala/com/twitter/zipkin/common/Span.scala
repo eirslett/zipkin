@@ -16,8 +16,8 @@
  */
 package com.twitter.zipkin.common
 
-import com.twitter.util.NonFatal
 import com.twitter.zipkin.Constants
+
 import scala.collection.breakOut
 
 /**
@@ -30,42 +30,6 @@ import scala.collection.breakOut
  * such as cache hits/misses.
  */
 object Span {
-  // TODO(jeff): what?!
-  def apply(span: Span): Span = span
-
-  def apply(
-    _traceId: Long,
-    _name: String,
-    _id: Long,
-    _parentId: Option[Long],
-    _annotations: List[Annotation],
-    _binaryAnnotations: Seq[BinaryAnnotation],
-    _debug: Boolean = false
-  ): Span = new Span {
-    def traceId = _traceId
-    def name = _name
-    def id = _id
-    def parentId = _parentId
-    def annotations = _annotations
-    def binaryAnnotations = _binaryAnnotations
-    def debug = _debug
-  }
-
-  def unapply(span: Span): Option[(Long, String, Long, Option[Long], List[Annotation], Seq[BinaryAnnotation], Boolean)] =
-    try {
-      Some(
-        span.traceId,
-        span.name,
-        span.id,
-        span.parentId,
-        span.annotations,
-        span.binaryAnnotations,
-        span.debug
-      )
-    } catch {
-      case NonFatal(_) => None
-    }
-
   /**
    * Order annotations by timestamp.
    */
@@ -86,35 +50,14 @@ object Span {
  * serialized objects
  * @param debug if this is set we will make sure this span is stored, no matter what the samplers want
  */
-trait Span { self =>
-  def traceId: Long
-  def name: String
-  def id: Long
-  def parentId: Option[Long]
-  def annotations: List[Annotation]
-  def binaryAnnotations: Seq[BinaryAnnotation]
-  def debug: Boolean
-
-  def copy(
-    traceId: Long = self.traceId,
-    name: String = self.name,
-    id: Long = self.id,
-    parentId: Option[Long] = self.parentId,
-    annotations: List[Annotation] = self.annotations,
-    binaryAnnotations: Seq[BinaryAnnotation] = self.binaryAnnotations,
-    debug: Boolean = self.debug
-  ): Span = Span(traceId, name, id, parentId, annotations, binaryAnnotations, debug)
-
-  private def tuple = (traceId, name, id, parentId, annotations, binaryAnnotations, debug)
-
-  override def equals(other: Any): Boolean = other match {
-    case o: Span => o.tuple == self.tuple
-    case _ => false
-  }
-
-  override def hashCode: Int = tuple.hashCode
-
-  override def toString: String = s"Span${tuple}"
+case class Span(
+                 traceId: Long,
+                 name: String,
+                 id: Long,
+                 parentId: Option[Long],
+                 annotations: List[Annotation],
+                 binaryAnnotations: Seq[BinaryAnnotation],
+                 debug: Boolean = false) {
 
   def serviceNames: Set[String] =
     annotations.flatMap(a => a.host.map(h => h.serviceName.toLowerCase)).toSet
@@ -157,15 +100,15 @@ trait Span { self =>
       case _ => name
     }
 
-    new Span {
-      def traceId = self.traceId
-      def name = selectedName
-      def id = self.id
-      def parentId = self.parentId
-      def annotations = self.annotations ++ mergeFrom.annotations
-      def binaryAnnotations = self.binaryAnnotations ++ mergeFrom.binaryAnnotations
-      def debug = self.debug | mergeFrom.debug
-    }
+    Span(
+      traceId = traceId,
+      name = selectedName,
+      id = id,
+      parentId = parentId,
+      annotations = annotations ++ mergeFrom.annotations,
+      binaryAnnotations = binaryAnnotations ++ mergeFrom.binaryAnnotations,
+      debug = debug | mergeFrom.debug
+    )
   }
 
   /**
@@ -247,4 +190,18 @@ trait Span { self =>
 
   def lastTimestamp: Option[Long] = lastAnnotation.map(_.timestamp)
   def firstTimestamp: Option[Long] = firstAnnotation.map(_.timestamp)
+}
+
+// For Java-friendliness
+final class SpanBuilder {
+  import java.util.List
+  var traceId: Long = _
+  var name: String = _
+  var id: Long = _
+  var parentId: Option[Long] = _
+  var annotations: List[Annotation] = _
+  var binaryAnnotations: List[BinaryAnnotation] = _
+  var debug = false
+
+  //  def withTraceId(traceId: Long) = {  }
 }

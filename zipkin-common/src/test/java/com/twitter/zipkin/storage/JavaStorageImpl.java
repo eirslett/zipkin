@@ -21,7 +21,7 @@ import java.util.concurrent.ForkJoinPool;
 public final class JavaStorageImpl extends AbstractStorage {
 
     @Override
-    public Future<Set<Long>> java_tracesExist(List<Long> traceIds) {
+    public Future<Set<Long>> tracesExist(List<Long> traceIds) {
         // A ListenableFuture would probably come from some async library
         ListenableFuture<Set<Long>> lf = MoreExecutors.listeningDecorator(new ForkJoinPool()).submit(new Callable<Set<Long>>() {
             @Override
